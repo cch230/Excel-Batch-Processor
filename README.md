@@ -1,5 +1,5 @@
-# 스마트스토어 엑셀 일괄처리 프로그램  
-# Smart Store Excel Batch Processor
+# 엑셀 일괄배송처리 프로그램  
+# Excel Batch Processor
 
 ---
 
@@ -22,7 +22,7 @@ Your sponsorship helps keep this project alive and motivates further development
 ---
 
 ### 1. 소개
-스마트스토어 주문 데이터와 운송장 데이터를 자동 매칭하여 엑셀로 저장하는 PyQt5 기반 GUI 프로그램입니다. 암호화된 엑셀도 지원하며, 드래그 앤 드롭으로 파일을 올릴 수 있습니다.  
+[스마트스토어 / 쿠팡 / 토스] 주문 데이터와 [로젠택배 / CJ대한통운] 운송장 데이터를 자동 매칭하여 엑셀로 저장하는 PyQt5 기반 GUI 프로그램입니다. 암호화된 엑셀도 지원하며, 드래그 앤 드롭으로 파일을 올릴 수 있습니다.  
 [Click to read English introduction.](#English-Guide)
 
    
@@ -71,10 +71,11 @@ GPL-3.0
 
 ### 8. 예시 폴더 구조
   ```bash
-/SmartStore-Excel-Processor  
+/logen_batch_delivery  
 ├── delivery_ui.py  
 ├── requirements.txt   
-├── LICENSE  
+├── LICENSE
+├── icon.ico  
 └── README.md  
  ```
 
@@ -82,13 +83,13 @@ GPL-3.0
 - v1.0.0: 최초 배포
 - v1.1.0: 암호화 엑셀 지원 추가
 - v1.2.0: UI 개선 및 성능 최적화
-
+- v1.3.5: 스마트 스토어, 쿠팡, 토스 - 로젠택배, CJ대한통운 
 ---
 
 ## English Guide
 
 ### 1. Introduction
-A GUI tool for batch matching Smart Store order and shipping Excel files. Built with PyQt5, supports drag & drop, password-protected Excel, and saves results with styled headers.
+A GUI tool for batch matching [Smart Store / Toss / Coupang] order and [LOZEN / CJ] shipping Excel files. Built with PyQt5, supports drag & drop, password-protected Excel, and saves results with styled headers.
 
 ### 2. Features
 - **Drag & Drop** upload for order/shipping Excel files
@@ -136,7 +137,8 @@ See `LICENSE` for details
 /SmartStore-Excel-Processor  
 ├── delivery_ui.py  
 ├── requirements.txt   
-├── LICENSE  
+├── LICENSE
+├── icon.ico  
 └── README.md  
  ```
 
@@ -144,3 +146,5 @@ See `LICENSE` for details
 - v1.0.0: Initial release
 - v1.1.0: Added encrypted Excel file support
 - v1.2.0: UI improvements and performance optimization
+- v1.3.5: Added [Smart Store / Toss / Coupang] order and [LOZEN / CJ] shipping Excel file support
+
