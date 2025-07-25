@@ -24,6 +24,16 @@ from PyQt5.QtWidgets import (
 from qasync import QEventLoop, asyncSlot
 
 
+def resource_path(relative_path):
+    """PyInstaller로 번들된 경우 임시 폴더 경로를 반환, 아니면 현재 경로와 결합"""
+    try:
+        base_path = sys._MEIPASS  # PyInstaller가 임시로 해제한 폴더
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 # 엑셀 파일 읽기 함수 (암호 지원)
 def read_excel_with_password(file_path, password=None):
     """win32com을 사용하여 암호화된 엑셀 파일 처리"""
@@ -76,6 +86,7 @@ class DragDropWidget(QWidget):
 
     def __init__(self, label_text, file_type):
         super().__init__()
+        self.valid = False
         self.file_type = file_type
         self.file_path = ""
         self.initUI(label_text)
@@ -156,17 +167,40 @@ class DragDropWidget(QWidget):
         self.file_path = file_path
         file_name = os.path.basename(self.file_path)
         self.file_info.setText(f"선택된 파일: {file_name}")
-        self.drop_area.setText(f'\n\n✓ {analyzeFileSelected(file_name)} 파일이 선택되었습니다\n\n')
-        self.drop_area.setStyleSheet('''
-            QLabel {
-                border: 2px solid #4CAF50;
-                border-radius: 10px;
-                background-color: #E8F5E8;
-                color: #4CAF50;
-                font-size: 14px;
-                min-height: 120px;
-            }
-        ''')
+
+        result = analyzeFileSelected(file_name)
+        if self.file_type == "order":  # 오른쪽; 플랫폼
+            if result in ['스마트스토어', '토스', '쿠팡']:
+                self.valid = True
+        elif self.file_type == "shipping":  # 왼쪽; 택배사
+            if result in ['CJ대한통운', '로젠택배']:
+                self.valid = True
+
+        if self.valid:
+            self.drop_area.setText(f'\n\n✓ {result} 파일이 선택되었습니다\n\n')
+            self.drop_area.setStyleSheet('''
+                   QLabel {
+                       border: 2px solid #4CAF50;
+                       border-radius: 10px;
+                       background-color: #E8F5E8;
+                       color: #4CAF50;
+                       font-size: 14px;
+                       min-height: 120px;
+                   }
+               ''')
+        else:
+            self.drop_area.setText(f'\n\n❌ {result} 파일이 선택되었습니다\n\n')
+            self.drop_area.setStyleSheet('''
+                   QLabel {
+                       border: 2px solid #F44336;
+                       border-radius: 10px;
+                       background-color: #FFEBEE;
+                       color: #F44336;
+                       font-size: 14px;
+                       min-height: 120px;
+                   }
+               ''')
+
         self.fileDropped.emit(self.file_path, self.file_type)
 
 
@@ -225,7 +259,7 @@ class SmartStoreProcessor(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('배송 엑셀 일괄처리 프로그램 v1.3.5')
+        self.setWindowTitle('배송 엑셀 일괄처리 프로그램 v1.4.6')
         self.setWindowIcon(QIcon("icon.ico"))
         self.setGeometry(100, 100, 1000, 700)
         self.setStyleSheet("background-color: #FCFCFC;")
@@ -337,9 +371,12 @@ class SmartStoreProcessor(QMainWindow):
             self.log(f"운송장 데이터 파일 선택됨: {os.path.basename(file_path)}")
 
         # 두 파일이 모두 선택되면 처리 버튼 활성화
-        if self.a_file_path and self.b_file_path:
+        if self.a_file_path and self.b_file_path and self.a_drop_widget.valid and self.b_drop_widget.valid:
             self.process_button.setEnabled(True)
             self.log("두 파일이 모두 선택되었습니다. 처리를 시작할 수 있습니다.")
+        else:
+            self.process_button.setEnabled(False)
+            self.log("올바른 파일을 선택해주세요.")
 
     def log(self, message):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -435,18 +472,11 @@ class SmartStoreProcessor(QMainWindow):
                     a_name = str(a_row[self.platform_info[self.platform]['name']]).strip()
                     a_addr = str(a_row[self.platform_info[self.platform]['addr']]).strip()
                     a_zip_code = str(a_row[self.platform_info[self.platform]['zip_code']]).strip()
-                    self.log(f"a_df: {a_name}, {a_addr}, {a_zip_code}")
 
                     for b_idx, b_row in b_df.iterrows():
                         try:
-                            if b_idx == 0:
-                                self.log(f"b_row: {b_row}")
-
                             b_name = str(b_row[self.courier_info[self.courier]['name']]).strip()
-                            b_addr = str(b_row[self.courier_info[self.courier]['addr']]).strip()
                             b_zip_code = str(b_row[self.courier_info[self.courier]['zip_code']]).strip()
-                            b_addr_words = b_addr.split(' ')
-                            self.log(f"b_df: {b_name},{b_addr},{b_zip_code},{b_addr_words}")
 
                             # fixme test
                             # if b_name == a_name:
@@ -460,6 +490,9 @@ class SmartStoreProcessor(QMainWindow):
 
                             # 매칭 조건 확인
                             if self.courier == '로젠택배':
+                                b_addr = str(b_row[self.courier_info[self.courier]['addr']]).strip()
+                                b_addr_words = b_addr.split(' ')
+
                                 condition = (
                                         b_name == a_name and
                                         len(b_addr_words) > 2 and
@@ -471,12 +504,9 @@ class SmartStoreProcessor(QMainWindow):
                             if condition:
                                 goods_name = a_row[self.platform_info[self.platform]['goods_name']]
                                 tracking_no = b_row[self.courier_info[self.courier]['tracking_no']].replace('-', '')
-                                quantity_inside = get_quantity_inside(goods_name,
-                                                                      a_row[self.platform_info[self.platform][
-                                                                          'quantity']])
-
-                                if self.platform == '토스':
-                                    quantity_inside = b_row['옵션'].replace('-', '')
+                                item_quantity = a_row[self.platform_info[self.platform]['quantity']]
+                                opt_signal = b_row['옵션'] if self.platform == '토스' else None
+                                quantity_inside = get_quantity_inside(goods_name, item_quantity, opt_signal)
 
                                 if self.platform == '토스':
                                     a_df.at[a_idx, '주문상태'] = '배송중'
@@ -484,8 +514,8 @@ class SmartStoreProcessor(QMainWindow):
                                     a_df.at[a_idx, '송장번호'] = tracking_no
                                 elif self.platform == '쿠팡':
                                     a_df.at[a_idx, '분리배송 Y/N'] = 'N'
-                                    a_df.at[a_idx, '택배사'] = self.courier
-                                    a_df.at[a_idx, '송장번호'] = tracking_no
+                                    a_df.at[a_idx, '택배사'] = 'CJ 대한통운' if self.courier == 'CJ대한통운' else self.courier
+                                    a_df.at[a_idx, '운송장번호'] = tracking_no
 
                                 result_rows.append({
                                     '상품주문번호': a_row[self.platform_info[self.platform]['order_no']],
@@ -516,10 +546,10 @@ class SmartStoreProcessor(QMainWindow):
             # 엑셀 파일로 저장
             if result_rows:
                 now = datetime.now()
-                formatted_time = now.strftime("%Y%m%d_%H%M")
+                formatted_time = now.strftime("%y%m%d_%H%M")
 
                 if self.platform in ['토스', '쿠팡']:
-                    a_df.to_excel(f'일괄처리 업로드용_{self.platform}_{self.courier}_{formatted_time}', index=False)
+                    a_df.to_excel(f'{self.platform} 업로드용_{formatted_time}.xlsx', index=False)
 
                 await self.save_to_excel(result_rows, formatted_time)
             else:
@@ -588,6 +618,10 @@ class SmartStoreProcessor(QMainWindow):
 
             if reply == QMessageBox.Yes:
                 os.startfile(output_filename)
+
+            # 폴더 열기
+            folder_path = os.path.dirname(os.path.abspath(output_filename))
+            os.startfile(folder_path)
 
         except Exception as e:
             self.log(f"파일 저장 중 오류: {str(e)}")
