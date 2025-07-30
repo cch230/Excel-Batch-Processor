@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 )
 from qasync import QEventLoop, asyncSlot
 
+app_version = 'v1.4.7'
 
 def resource_path(relative_path):
     """PyInstaller로 번들된 경우 임시 폴더 경로를 반환, 아니면 현재 경로와 결합"""
@@ -41,14 +42,14 @@ def read_excel_with_password(file_path, password=None):
     try:
         # 암호가 없는 경우 일반적으로 읽기
         if password is None:
-            return pd.read_excel(file_path)
+            return pd.read_excel(file_path, dtype=str)
 
         decrypted_workbook = io.BytesIO()
         office_file = msoffcrypto.OfficeFile(open(file_path, 'rb'))
         office_file.load_key(password=password)
         office_file.decrypt(decrypted_workbook)
         decrypted_workbook.seek(0)
-        return pd.read_excel(decrypted_workbook)
+        return pd.read_excel(decrypted_workbook, dtype=str)
 
     except Exception as e:
         raise ValueError(f"파일 읽기 오류: {str(e)}")
@@ -259,7 +260,7 @@ class SmartStoreProcessor(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('배송 엑셀 일괄처리 프로그램 v1.4.6')
+        self.setWindowTitle(f'배송 엑셀 일괄처리 프로그램 {app_version}')
         self.setWindowIcon(QIcon("icon.ico"))
         self.setGeometry(100, 100, 1000, 700)
         self.setStyleSheet("background-color: #FCFCFC;")
@@ -448,7 +449,7 @@ class SmartStoreProcessor(QMainWindow):
             self.courier = analyzeFileSelected(b_file_name)
             self.log(f"운송장 데이터 읽는 중: {b_file_name}")
 
-            b_df = pd.read_excel(self.b_file_path)
+            b_df = pd.read_excel(self.b_file_path, dtype=str)
 
             # 운송장 데이터 세팅
             if self.courier == '로젠택배':
@@ -461,12 +462,6 @@ class SmartStoreProcessor(QMainWindow):
             self.log("데이터 매칭 중...")
             result_rows = []
 
-            # fixme test
-            # r_a = []
-            # r_b = []
-            # r_c = []
-            # r_d = []
-
             for a_idx, a_row in a_df.iterrows():
                 try:
                     a_name = str(a_row[self.platform_info[self.platform]['name']]).strip()
@@ -477,16 +472,6 @@ class SmartStoreProcessor(QMainWindow):
                         try:
                             b_name = str(b_row[self.courier_info[self.courier]['name']]).strip()
                             b_zip_code = str(b_row[self.courier_info[self.courier]['zip_code']]).strip()
-
-                            # fixme test
-                            # if b_name == a_name:
-                            #     r_a.append(a_name)
-                            # if b_phone in a_phone:
-                            #     r_b.append(a_name)
-                            # if len(b_addr_words) > 2 and b_addr_words[1] in a_addr:
-                            #     r_c.append(a_name)
-                            # if b_zip_code == a_zip_code:
-                            #    r.d.append(a_name)
 
                             # 매칭 조건 확인
                             if self.courier == '로젠택배':
@@ -501,7 +486,13 @@ class SmartStoreProcessor(QMainWindow):
                             else:
                                 condition = b_name == a_name and b_zip_code == a_zip_code
 
+                            # fixme test
+                            # self.log(f"condition before: {a_zip_code}, {b_zip_code}")
+
                             if condition:
+                                # fixme test
+                                # self.log(f"condition after: {a_zip_code}, {b_zip_code}")
+
                                 goods_name = a_row[self.platform_info[self.platform]['goods_name']]
                                 tracking_no = b_row[self.courier_info[self.courier]['tracking_no']].replace('-', '')
                                 item_quantity = a_row[self.platform_info[self.platform]['quantity']]
@@ -536,9 +527,6 @@ class SmartStoreProcessor(QMainWindow):
                     continue
 
             self.log(f"매칭 완료: {len(result_rows)}건 처리됨")
-
-            # fixme test
-            # self.log(f"{len(r_a)}, {len(r_b)}, {len(r_c)}, {len(r_d)}")
 
             # 결과를 테이블에 표시
             self.display_results(result_rows)
