@@ -86,6 +86,8 @@ GPL-3.0
 - v1.3.5: 스마트 스토어, 쿠팡, 토스 - 로젠택배, CJ대한통운 
 - v1.3.6: 쿠팡 버그 해결
 - v1.4.6: 잘못된 위치에 파일 업로드 시 UI 개선
+- v1.4.7: 숫자 데이터 형식 버그 해결
+
 ---
 
 ## English Guide
@@ -151,3 +153,4 @@ See `LICENSE` for details
 - v1.3.5: Added [Smart Store / Toss / Coupang] order and [LOZEN / CJ] shipping Excel file support
 - v1.3.6: Fixed bug related to Coupang
 - v1.4.6: Improved UI handling for incorrect file uploads
+- v1.4.7: Fixed bug with numeric data formatting.
